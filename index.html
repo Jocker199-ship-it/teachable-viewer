@@ -2,20 +2,29 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Teachable Machine: Загрузка модели с компьютера</title>
+    <title>Teachable Machine: Загрузка модели</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <style>
+        #status { margin-top: 10px; }
+    </style>
 </head>
 <body>
-    <h2>Загрузка модели с компьютера</h2>
-    <p>Загрузите 3 файла: <code>model.json</code>, <code>metadata.json</code>, <code>weights.bin</code></p>
+    <h1>Teachable Machine: Загрузка модели</h1>
+    <p>Выберите 3 файла, скачанные из Teachable Machine:</p>
+    <ul>
+        <li><strong>model.json</strong></li>
+        <li><strong>metadata.json</strong></li>
+        <li><strong>weights.bin</strong></li>
+    </ul>
 
-    <label>model.json: <input type="file" id="model-file"></label><br>
-    <label>metadata.json: <input type="file" id="metadata-file"></label><br>
-    <label>weights.bin: <input type="file" id="weights-file"></label><br><br>
+    <label>model.json: <input type="file" id="model-file" accept=".json"></label><br>
+    <label>metadata.json: <input type="file" id="metadata-file" accept=".json"></label><br>
+    <label>weights.bin: <input type="file" id="weights-file" accept=".bin"></label><br><br>
 
     <button onclick="loadModel()">Загрузить модель</button>
-    <p id="status"></p>
+
+    <p id="status">⏳ Ожидание загрузки...</p>
     <div id="webcam-container"></div>
     <div id="label-container"></div>
 
@@ -24,7 +33,7 @@
 
         async function loadModel() {
             const status = document.getElementById("status");
-            status.textContent = "";
+            status.textContent = "⏳ Загружаем модель...";
 
             try {
                 const modelFile = document.getElementById("model-file").files[0];
@@ -32,54 +41,15 @@
                 const weightsFile = document.getElementById("weights-file").files[0];
 
                 if (!modelFile || !metadataFile || !weightsFile) {
-                    status.textContent = "❌ Загрузите все три файла.";
+                    status.textContent = "❌ Пожалуйста, выберите все 3 файла.";
                     return;
                 }
 
                 const files = {
                     model: new File([await modelFile.arrayBuffer()], "model.json"),
                     metadata: new File([await metadataFile.arrayBuffer()], "metadata.json"),
-                    weights: new File([await weightsFile.arrayBuffer()], "weights.bin")
+                    weights: new File([await weightsFile.arrayBuffer()], "weights.bin"),
                 };
 
                 model = await tmImage.loadFromFiles(files);
-                maxPredictions = model.getTotalClasses();
-
-                // Setup webcam
-                const flip = true;
-                webcam = new tmImage.Webcam(200, 200, flip);
-                await webcam.setup();
-                await webcam.play();
-                window.requestAnimationFrame(loop);
-
-                document.getElementById("webcam-container").appendChild(webcam.canvas);
-
-                labelContainer = document.getElementById("label-container");
-                labelContainer.innerHTML = "";
-                for (let i = 0; i < maxPredictions; i++) {
-                    labelContainer.appendChild(document.createElement("div"));
-                }
-
-                status.textContent = "✅ Модель успешно загружена!";
-            } catch (e) {
-                status.textContent = "❌ Ошибка загрузки модели: " + e.message;
-                console.error(e);
-            }
-        }
-
-        async function loop() {
-            webcam.update();
-            await predict();
-            window.requestAnimationFrame(loop);
-        }
-
-        async function predict() {
-            const prediction = await model.predict(webcam.canvas);
-            for (let i = 0; i < maxPredictions; i++) {
-                const classPrediction = `${prediction[i].className}: ${prediction[i].probability.toFixed(2)}`;
-                labelContainer.childNodes[i].innerText = classPrediction;
-            }
-        }
-    </script>
-</body>
-</html>
+                maxPredictions = mode
