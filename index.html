@@ -1,99 +1,83 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Teachable Machine: Загрузка модели</title>
+    <title>Teachable Machine Viewer (local upload)</title>
 </head>
 <body>
-  <h1>Загрузка модели с компьютера</h1>
-  <p>Загрузите 3 файла: <code>model.json</code>, <code>metadata.json</code>, <code>weights.bin</code></p>
-  
-  <label>model.json: <input type="file" id="model-json" accept=".json"></label><br>
-  <label>metadata.json: <input type="file" id="metadata-json" accept=".json"></label><br>
-  <label>weights.bin: <input type="file" id="weights-bin" accept=".bin"></label><br><br>
+    <h1>Teachable Machine: Local Model Test</h1>
+    <p>Загрузите <code>model.json</code> и <code>metadata.json</code> из Teachable Machine</p>
 
-  <button onclick="loadModel()">Загрузить модель</button>
-  <div id="log"></div>
-  <div id="webcam-container"></div>
-  <div id="label-container"></div>
+    <input type="file" id="model-json" accept="application/json"> model.json<br><br>
+    <input type="file" id="metadata-json" accept="application/json"> metadata.json<br><br>
+    <button onclick="loadModel()">Загрузить модель</button>
 
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <h3>📋 Статус:</h3>
+    <div id="status"></div>
 
-  <script>
-    let model, webcam, labelContainer, maxPredictions;
+    <h3>📷 Вебкамера:</h3>
+    <div id="webcam-container"></div>
 
-    async function loadModel() {
-      const modelJsonFile = document.getElementById('model-json').files[0];
-      const metadataJsonFile = document.getElementById('metadata-json').files[0];
-      const weightsBinFile = document.getElementById('weights-bin').files[0];
+    <h3>📈 Результаты:</h3>
+    <div id="label-container"></div>
 
-      const log = msg => document.getElementById('log').innerText = msg;
-      if (!modelJsonFile || !metadataJsonFile || !weightsBinFile) {
-        log('❌ Все 3 файла должны быть выбраны.');
-        return;
-      }
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
 
-      log('Загружается модель...');
+    <script>
+        let model, webcam, labelContainer, maxPredictions;
 
-      try {
-        const modelJson = await fileToObject(modelJsonFile);
-        const metadataJson = await fileToObject(metadataJsonFile);
+        async function loadModel() {
+            const status = document.getElementById("status");
+            status.innerText = "Загрузка модели...";
+            try {
+                const modelFile = document.getElementById("model-json").files[0];
+                const metadataFile = document.getElementById("metadata-json").files[0];
 
-        const files = {
-          'model.json': new File([JSON.stringify(modelJson)], 'model.json'),
-          'metadata.json': new File([JSON.stringify(metadataJson)], 'metadata.json'),
-          'weights.bin': weightsBinFile
-        };
+                if (!modelFile || !metadataFile) {
+                    status.innerText = "Ошибка: нужно выбрать оба файла (model.json и metadata.json)";
+                    return;
+                }
 
-        model = await tmImage.loadFromFiles(files);
-        log('✅ Модель успешно загружена! Запускается камера...');
+                model = await tmImage.loadFromFiles(modelFile, metadataFile);
+                maxPredictions = model.getTotalClasses();
+                status.innerText = "✅ Модель загружена успешно.";
 
-        maxPredictions = model.getTotalClasses();
-        const flip = true;
-        webcam = new tmImage.Webcam(200, 200, flip);
-        await webcam.setup();
-        await webcam.play();
-        window.requestAnimationFrame(loop);
-
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        labelContainer = document.getElementById("label-container");
-        for (let i = 0; i < maxPredictions; i++) {
-          labelContainer.appendChild(document.createElement("div"));
+                await setupWebcam();
+                window.requestAnimationFrame(loop);
+            } catch (error) {
+                console.error("Ошибка при загрузке модели:", error);
+                status.innerText = "❌ Ошибка загрузки: " + error.message;
+            }
         }
-      } catch (err) {
-        log('❌ Ошибка загрузки модели: ' + err.message);
-      }
-    }
 
-    async function fileToObject(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          try {
-            resolve(JSON.parse(reader.result));
-          } catch (e) {
-            reject(e);
-          }
-        };
-        reader.onerror = reject;
-        reader.readAsText(file);
-      });
-    }
+        async function setupWebcam() {
+            const flip = true;
+            webcam = new tmImage.Webcam(200, 200, flip);
+            await webcam.setup();
+            await webcam.play();
 
-    async function loop() {
-      webcam.update();
-      await predict();
-      window.requestAnimationFrame(loop);
-    }
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
 
-    async function predict() {
-      const prediction = await model.predict(webcam.canvas);
-      for (let i = 0; i < maxPredictions; i++) {
-        const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-        labelContainer.childNodes[i].innerHTML = classPrediction;
-      }
-    }
-  </script>
+            labelContainer = document.getElementById("label-container");
+            labelContainer.innerHTML = "";
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+        }
+
+        async function loop() {
+            webcam.update();
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            const prediction = await model.predict(webcam.canvas);
+            for (let i = 0; i < maxPredictions; i++) {
+                const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+                labelContainer.childNodes[i].innerText = classPrediction;
+            }
+        }
+    </script>
 </body>
 </html>
