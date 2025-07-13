@@ -1,33 +1,43 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Teachable Machine Viewer</title>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-  </head>
-  <body>
-    <h1>Teachable Machine Viewer</h1>
-    <p>Paste your model URL:</p>
-    <input type="text" id="model-url" size="60" placeholder="Link to model.json">
-    <button onclick="loadModel()">Load Model</button>
+<head>
+  <title>Teachable Machine Loader (GitHub Folder)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+</head>
+<body>
+  <h2>Load Teachable Machine Model from GitHub Folder</h2>
+  <input id="folder-url" type="text" placeholder="Paste GitHub folder URL here" size="80">
+  <button onclick="loadModel()">Load Model</button>
 
-    <script type="text/javascript">
-      async function loadModel() {
-        let url = document.getElementById('model-url').value.trim();
+  <script>
+    let model;
 
-        // если вставлен прямой путь до model.json, обрезаем до директории
-        if (url.endsWith('model.json')) {
-          url = url.slice(0, url.lastIndexOf('/') + 1);
-        }
+    async function loadModel() {
+      const input = document.getElementById("folder-url").value.trim();
 
-        const modelURL = url + "model.json";
-        const metadataURL = url + "metadata.json";
-
-        const model = await tmImage.load(modelURL, metadataURL);
-        console.log("Model loaded", model);
-
-        alert("Model loaded successfully!");
-        // Здесь можно добавить UI для тестирования, если нужно
+      if (!input.includes("github.com")) {
+        alert("Please enter a valid GitHub folder URL");
+        return;
       }
-    </script>
-  </body>
+
+      // 🧠 Преобразуем GitHub-папку в RAW-ссылку
+      let rawBase = input
+        .replace("https://github.com/", "https://raw.githubusercontent.com/")
+        .replace("/tree/", "/");
+
+      // добавляем пути к JSON-файлам
+      const modelURL = rawBase + "/model.json";
+      const metadataURL = rawBase + "/metadata.json";
+
+      try {
+        model = await tmImage.load(modelURL, metadataURL);
+        console.log("✅ Model loaded!", model);
+        alert("Model loaded!");
+      } catch (err) {
+        console.error("❌ Error loading model:", err);
+        alert("Failed to load model. Check if the model.json and metadata.json are public.");
+      }
+    }
+  </script>
+</body>
 </html>
