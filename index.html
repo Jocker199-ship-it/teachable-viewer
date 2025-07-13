@@ -1,67 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Teachable Machine Viewer (local upload)</title>
-</head>
-<body>
-    <h1>Teachable Machine: Local Model Test</h1>
-    <p>Загрузите <code>model.json</code> и <code>metadata.json</code> из Teachable Machine</p>
-
-    <input type="file" id="model-json" accept="application/json"> model.json<br><br>
-    <input type="file" id="metadata-json" accept="application/json"> metadata.json<br><br>
-    <button onclick="loadModel()">Загрузить модель</button>
-
-    <h3>📋 Статус:</h3>
-    <div id="status"></div>
-
-    <h3>📷 Вебкамера:</h3>
-    <div id="webcam-container"></div>
-
-    <h3>📈 Результаты:</h3>
-    <div id="label-container"></div>
-
+    <meta charset="UTF-8">
+    <title>Teachable Machine: Загрузка модели с компьютера</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+</head>
+<body>
+    <h2>Загрузка модели с компьютера</h2>
+    <p>Загрузите 3 файла: <code>model.json</code>, <code>metadata.json</code>, <code>weights.bin</code></p>
+
+    <label>model.json: <input type="file" id="model-file"></label><br>
+    <label>metadata.json: <input type="file" id="metadata-file"></label><br>
+    <label>weights.bin: <input type="file" id="weights-file"></label><br><br>
+
+    <button onclick="loadModel()">Загрузить модель</button>
+    <p id="status"></p>
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
 
     <script>
         let model, webcam, labelContainer, maxPredictions;
 
         async function loadModel() {
             const status = document.getElementById("status");
-            status.innerText = "Загрузка модели...";
-            try {
-                const modelFile = document.getElementById("model-json").files[0];
-                const metadataFile = document.getElementById("metadata-json").files[0];
+            status.textContent = "";
 
-                if (!modelFile || !metadataFile) {
-                    status.innerText = "Ошибка: нужно выбрать оба файла (model.json и metadata.json)";
+            try {
+                const modelFile = document.getElementById("model-file").files[0];
+                const metadataFile = document.getElementById("metadata-file").files[0];
+                const weightsFile = document.getElementById("weights-file").files[0];
+
+                if (!modelFile || !metadataFile || !weightsFile) {
+                    status.textContent = "❌ Загрузите все три файла.";
                     return;
                 }
 
-                model = await tmImage.loadFromFiles(modelFile, metadataFile);
+                const files = {
+                    model: new File([await modelFile.arrayBuffer()], "model.json"),
+                    metadata: new File([await metadataFile.arrayBuffer()], "metadata.json"),
+                    weights: new File([await weightsFile.arrayBuffer()], "weights.bin")
+                };
+
+                model = await tmImage.loadFromFiles(files);
                 maxPredictions = model.getTotalClasses();
-                status.innerText = "✅ Модель загружена успешно.";
 
-                await setupWebcam();
+                // Setup webcam
+                const flip = true;
+                webcam = new tmImage.Webcam(200, 200, flip);
+                await webcam.setup();
+                await webcam.play();
                 window.requestAnimationFrame(loop);
-            } catch (error) {
-                console.error("Ошибка при загрузке модели:", error);
-                status.innerText = "❌ Ошибка загрузки: " + error.message;
-            }
-        }
 
-        async function setupWebcam() {
-            const flip = true;
-            webcam = new tmImage.Webcam(200, 200, flip);
-            await webcam.setup();
-            await webcam.play();
+                document.getElementById("webcam-container").appendChild(webcam.canvas);
 
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
+                labelContainer = document.getElementById("label-container");
+                labelContainer.innerHTML = "";
+                for (let i = 0; i < maxPredictions; i++) {
+                    labelContainer.appendChild(document.createElement("div"));
+                }
 
-            labelContainer = document.getElementById("label-container");
-            labelContainer.innerHTML = "";
-            for (let i = 0; i < maxPredictions; i++) {
-                labelContainer.appendChild(document.createElement("div"));
+                status.textContent = "✅ Модель успешно загружена!";
+            } catch (e) {
+                status.textContent = "❌ Ошибка загрузки модели: " + e.message;
+                console.error(e);
             }
         }
 
@@ -74,7 +76,7 @@
         async function predict() {
             const prediction = await model.predict(webcam.canvas);
             for (let i = 0; i < maxPredictions; i++) {
-                const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+                const classPrediction = `${prediction[i].className}: ${prediction[i].probability.toFixed(2)}`;
                 labelContainer.childNodes[i].innerText = classPrediction;
             }
         }
