@@ -1,23 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Teachable Machine Viewer</title>
+  <meta charset="UTF-8">
+  <title>Teachable Viewer</title>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 20px; text-align: center; }
-    input { width: 60%; padding: 10px; font-size: 1em; margin-bottom: 10px; }
-    button { padding: 10px 20px; font-size: 1em; }
-    #webcam-container, #label-container { margin-top: 20px; }
-  </style>
 </head>
 <body>
   <h1>Teachable Machine Viewer</h1>
-  <p>Вставь ссылку на model.json (например, с GitHub Pages)</p>
-  <input type="text" id="modelURL" placeholder="https://username.github.io/repo/model.json">
-  <br>
-  <button onclick="loadModel()">Загрузить модель</button>
+
+  <label for="modelURL">Paste your model URL:</label>
+  <input type="text" id="modelURL" size="60" placeholder="https://teachablemachine.withgoogle.com/models/abc123/">
+  <button onclick="init()">Load Model</button>
 
   <div id="webcam-container"></div>
   <div id="label-container"></div>
@@ -25,9 +18,15 @@
   <script>
     let model, webcam, labelContainer, maxPredictions;
 
-    async function loadModel() {
-      const modelURL = document.getElementById("modelURL").value;
-      const metadataURL = modelURL.replace("model.json", "metadata.json");
+    async function init() {
+      const URL = document.getElementById("modelURL").value;
+      if (!URL.endsWith("/")) {
+        alert("Model URL should end with a slash (/)");
+        return;
+      }
+
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
 
       model = await tmImage.load(modelURL, metadataURL);
       maxPredictions = model.getTotalClasses();
@@ -39,9 +38,7 @@
       window.requestAnimationFrame(loop);
 
       document.getElementById("webcam-container").appendChild(webcam.canvas);
-
       labelContainer = document.getElementById("label-container");
-      labelContainer.innerHTML = "";
       for (let i = 0; i < maxPredictions; i++) {
         labelContainer.appendChild(document.createElement("div"));
       }
@@ -57,7 +54,7 @@
       const prediction = await model.predict(webcam.canvas);
       for (let i = 0; i < maxPredictions; i++) {
         const classPrediction =
-          prediction[i].className + ": " + (prediction[i].probability * 100).toFixed(2) + "%";
+          prediction[i].className + ": " + prediction[i].probability.toFixed(2);
         labelContainer.childNodes[i].innerHTML = classPrediction;
       }
     }
