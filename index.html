@@ -1,51 +1,63 @@
-<input type="file" id="modelFile" accept=".json" />
-<input type="file" id="metadataFile" accept=".json" />
-<button onclick="init()">Load Model</button>
-<div id="webcam-container"></div>
-<div id="label-container"></div>
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Teachable Machine Local Model</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+  </head>
+  <body>
+    <h1>Teachable Machine: Загрузка модели с компьютера</h1>
+    <p>Загрузи файлы <code>model.json</code> и <code>metadata.json</code></p>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
-<script>
-let model, webcam, labelContainer, maxPredictions;
+    <input type="file" id="model-json" accept="application/json">
+    <input type="file" id="metadata-json" accept="application/json">
+    <button onclick="loadModel()">Загрузить модель</button>
 
-async function init() {
-    const modelFile = document.getElementById("modelFile").files[0];
-    const metadataFile = document.getElementById("metadataFile").files[0];
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
 
-    if (!modelFile || !metadataFile) {
-        alert("Выберите оба файла model.json и metadata.json");
-        return;
-    }
+    <script>
+      let model, webcam, labelContainer, maxPredictions;
 
-    model = await tmImage.loadFromFiles(modelFile, metadataFile);
-    maxPredictions = model.getTotalClasses();
+      async function loadModel() {
+        const modelFile = document.getElementById("model-json").files[0];
+        const metadataFile = document.getElementById("metadata-json").files[0];
 
-    const flip = true;
-    webcam = new tmImage.Webcam(200, 200, flip);
-    await webcam.setup();
-    await webcam.play();
-    window.requestAnimationFrame(loop);
+        if (!modelFile || !metadataFile) {
+          alert("Загрузите оба файла: model.json и metadata.json");
+          return;
+        }
 
-    document.getElementById("webcam-container").appendChild(webcam.canvas);
-    labelContainer = document.getElementById("label-container");
-    for (let i = 0; i < maxPredictions; i++) {
-        labelContainer.appendChild(document.createElement("div"));
-    }
-}
+        model = await tmImage.loadFromFiles(modelFile, metadataFile);
+        maxPredictions = model.getTotalClasses();
 
-async function loop() {
-    webcam.update();
-    await predict();
-    window.requestAnimationFrame(loop);
-}
+        const flip = true;
+        webcam = new tmImage.Webcam(200, 200, flip);
+        await webcam.setup();
+        await webcam.play();
+        window.requestAnimationFrame(loop);
 
-async function predict() {
-    const prediction = await model.predict(webcam.canvas);
-    for (let i = 0; i < maxPredictions; i++) {
-        const classPrediction =
-            prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-        labelContainer.childNodes[i].innerHTML = classPrediction;
-    }
-}
-</script>
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+        labelContainer.innerHTML = "";
+        for (let i = 0; i < maxPredictions; i++) {
+          labelContainer.appendChild(document.createElement("div"));
+        }
+      }
+
+      async function loop() {
+        webcam.update();
+        await predict();
+        window.requestAnimationFrame(loop);
+      }
+
+      async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        for (let i = 0; i < maxPredictions; i++) {
+          const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+          labelContainer.childNodes[i].innerHTML = classPrediction;
+        }
+      }
+    </script>
+  </body>
+</html>
