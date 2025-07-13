@@ -2,8 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Teachable Machine: Загрузка модели</title>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+  <title>Teachable Machine: Локальная модель</title>
   <style>
     body { font-family: sans-serif; }
     #status { margin-top: 10px; font-weight: bold; }
@@ -19,39 +18,39 @@
     <li><strong>weights.bin</strong></li>
   </ul>
 
-  <label>model.json: <input type="file" id="model-file" /></label><br>
-  <label>metadata.json: <input type="file" id="metadata-file" /></label><br>
-  <label>weights.bin: <input type="file" id="weights-file" /></label><br><br>
+  <label>model.json: <input type="file" id="model-file"></label><br>
+  <label>metadata.json: <input type="file" id="metadata-file"></label><br>
+  <label>weights.bin: <input type="file" id="weights-file"></label><br><br>
 
   <button onclick="loadModel()">Загрузить модель</button>
 
   <div id="status">🕓 Ожидание загрузки…</div>
-  <div id="results"></div>
 
+  <!-- Скрипт подключается после всех DOM-элементов -->
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
   <script>
     let model;
 
     async function loadModel() {
-      const modelInput = document.getElementById('model-file').files[0];
-      const metadataInput = document.getElementById('metadata-file').files[0];
-      const weightsInput = document.getElementById('weights-file').files[0];
+      const modelFile = document.getElementById('model-file').files[0];
+      const metadataFile = document.getElementById('metadata-file').files[0];
+      const weightsFile = document.getElementById('weights-file').files[0];
 
-      if (!modelInput || !metadataInput || !weightsInput) {
-        document.getElementById('status').innerHTML = "❌ Загрузите все три файла.";
+      if (!modelFile || !metadataFile || !weightsFile) {
+        document.getElementById('status').textContent = "❌ Загрузите все три файла.";
         return;
       }
 
-      const modelURL = URL.createObjectURL(modelInput);
-      const metadataURL = URL.createObjectURL(metadataInput);
-      const weightsURL = URL.createObjectURL(weightsInput);
+      const modelURL = URL.createObjectURL(modelFile);
+      const metadataURL = URL.createObjectURL(metadataFile);
+      const weightsURL = URL.createObjectURL(weightsFile); // Просто для проверки
 
       try {
         model = await tmImage.load(modelURL, metadataURL);
-        document.getElementById('status').innerHTML = "✅ Модель загружена!";
-        // Вставьте сюда код классификации изображения, если нужно
-      } catch (err) {
-        console.error(err);
-        document.getElementById('status').innerHTML = "❌ Ошибка загрузки модели: " + err.message;
+        document.getElementById('status').textContent = "✅ Модель успешно загружена!";
+      } catch (error) {
+        console.error(error);
+        document.getElementById('status').textContent = "❌ Ошибка загрузки модели: " + error.message;
       }
     }
   </script>
